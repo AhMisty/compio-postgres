@@ -1,0 +1,40 @@
+name: Rust 检查
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 固定到 v7.0.1
+        with:
+          persist-credentials: false
+      - if: runner.os == 'Linux'
+        run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run: cargo clippy --locked --all-targets --no-default-features -- -D warnings
+      - if: runner.os == 'Linux'
+        name: 限制并行用例创建的 io_uring 实例
+        run: printf 'RUST_TEST_THREADS=1\n' >> "$GITHUB_ENV"
+      - run: cargo test --locked --all-features
+      - run: cargo test --locked --no-default-features
+      - if: runner.os != 'Linux'
+        name: 本地 TLS 握手与分片检查
+        shell: bash
+        run: bash scripts/test-postgres.sh --tls-only
+      - if: runner.os == 'Linux'
+        run: cargo test --locked
+      - if: runner.os == 'Linux'
+        run: cargo test --locked --no-default-features --features service
+      - if: runner.os == 'Linux'
+        run: cargo rustdoc --locked --all-features --lib -- -D warnings
+      - if: runner.os == 'Linux'
+        name: PostgreSQL 19 TCP、TLS、Unix socket 与分配检查
+        run: bash scripts/test-postgres.sh

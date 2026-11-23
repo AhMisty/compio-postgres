@@ -1,0 +1,102 @@
+[package]
+name = "compio-postgres"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+description = "PostgreSQL 19 client for Compio with worker-local connections and pipelining"
+repository = "https://github.com/AhMisty/compio-postgres"
+documentation = "https://docs.rs/compio-postgres"
+license = "MIT"
+keywords = ["postgresql", "compio", "io-uring", "async", "pipelining"]
+categories = ["database", "asynchronous"]
+include = [
+    "/LICENSE",
+    "/README.md",
+    "/rust-toolchain.toml",
+    "/src/**",
+    "/docs/**",
+    "/examples/**",
+    "/scripts/test-postgres.sh",
+    "/benches/**",
+    "/tests/**",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[bench]]
+name = "service_workload"
+harness = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[features]
+default = ["tls"]
+tls = [
+    "dep:rustls", "dep:futures-rustls", "dep:x509-parser", "dep:sha2",
+    "futures-util/io",
+]
+postgres-types = ["dep:postgres-types", "dep:bytes"]
+uuid = ["dep:uuid"]
+time = ["dep:time"]
+serde_json = ["dep:serde_json"]
+diagnostics = []
+service = []
+window-cache = []
+
+[dependencies]
+compio = { version = "0.19.2", default-features = false, features = ["net"] }
+postgres-protocol = "0.6.12"
+socket2 = "0.6.5"
+futures-util = { version = "0.3.34", default-features = false }
+bytes = { version = "1.12.2", optional = true }
+postgres-types = { version = "0.2.14", optional = true }
+uuid = { version = "1.29.3", default-features = false, optional = true }
+time = { version = "0.3.55", default-features = false, optional = true }
+serde_json = { version = "1.0.154", optional = true }
+rustls = { version = "0.23.46", default-features = false, features = ["std", "ring", "tls12"], optional = true }
+futures-rustls = { version = "0.26.0", default-features = false, optional = true }
+x509-parser = { version = "0.18.1", default-features = false, optional = true }
+sha2 = { version = "0.11.1", default-features = false, optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+compio = { version = "0.19.2", default-features = false, features = ["io-uring"] }
+
+[target.'cfg(unix)'.dev-dependencies]
+rustix = { version = "1.1.6", features = ["fs", "net"] }
+
+[dev-dependencies]
+bytes = "1.12.2"
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+compio = { version = "0.19.2", default-features = false, features = ["time"] }
+stats_alloc = "0.1.10"
+
+[lints.rust]
+unsafe_code = "forbid"
+unexpected_cfgs = "deny"
+unused_must_use = "deny"
+unfulfilled_lint_expectations = "deny"
+unreachable_pub = "deny"
+unreachable_code = "deny"
+unreachable_patterns = "deny"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[lints.cargo]
+unused_dependencies = "deny"
+
+[lints.clippy]
+allow_attributes_without_reason = "deny"
+await_holding_lock = "deny"
+await_holding_refcell_ref = "deny"
+dbg_macro = "deny"
+exit = "deny"
+fallible_impl_from = "deny"
+let_underscore_future = "deny"
+string_slice = "deny"
+todo = "deny"
+unchecked_time_subtraction = "deny"
+unimplemented = "deny"
